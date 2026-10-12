@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive educational demonstration of elliptic-curve scalar multiplication on a tiny toy curve.">
+<title>Elliptic Curve Lab | HMWK 1</title>
+<style>
+:root{--navy:#142747;--blue:#2e67d1;--cyan:#dff6fa;--ink:#17263c;--muted:#61728b;--line:#dce6f2;--paper:#f4f7fb;--white:#fff;--green:#087f5b;--green-bg:#e6f7ef;--orange:#a85b08;--orange-bg:#fff4df;--red:#b42318;--shadow:0 12px 32px rgba(23,50,88,.07)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+header{background:linear-gradient(120deg,#142747,#204d86);color:#fff;padding:28px 20px}
+.header-inner,main{max-width:1120px;margin:auto}
+.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.76rem;font-weight:800;color:#9bdcf5}
+h1{font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.12;margin:8px 0}
+header p{color:#d7e6fb;max-width:720px;margin:8px 0 0}
+main{padding:22px 16px 46px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow);min-width:0}
+.span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}.span-6{grid-column:span 6}
+h2{font-size:1.18rem;margin:0 0 12px;letter-spacing:-.02em}
+h3{font-size:1rem;margin:18px 0 8px}
+p{margin:8px 0}
+.muted{color:var(--muted);font-size:.9rem}
+.formula{padding:15px;border-radius:12px;background:#edf4ff;color:#153f7a;font:600 .98rem/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.badge{font-size:.78rem;font-weight:750;padding:5px 9px;border-radius:999px;background:#eef3fa;color:#34516f}
+.controls{display:flex;flex-wrap:wrap;align-items:end;gap:12px}
+label{display:block;font-weight:700;font-size:.88rem;margin-bottom:5px}
+input[type=number],select{padding:10px 12px;border:1px solid #b9c9dc;border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
+input[type=number]{width:140px}
+button{border:0;border-radius:9px;background:var(--blue);color:white;font:700 .9rem inherit;padding:11px 15px;cursor:pointer;min-height:42px}
+button:hover{filter:brightness(.93)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9ac7ff;outline-offset:2px}
+button.secondary{background:#eaf0f8;color:#1e426d}
+button.ghost{background:transparent;color:#34516f;border:1px solid var(--line)}
+.result{margin-top:16px;background:var(--green-bg);border:1px solid #b8e6ce;border-radius:12px;padding:16px}
+.result .big{font:800 1.35rem ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--green);overflow-wrap:anywhere}
+.status{font-size:.9rem;margin-top:7px;color:#17684f}
+.error{color:var(--red);font-weight:700;margin-top:10px}
+.table-wrap{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:10px;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:.9rem;white-space:nowrap}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e8edf4}
+th{position:sticky;top:0;background:#edf3fa;color:#334d6d;z-index:1}
+tbody tr:last-child td{border-bottom:0}tbody tr.current{background:#e9f4ff;font-weight:750}
+.steps-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(240px,.8fr);gap:16px}
+.trace{background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:15px;min-height:120px}
+.trace code{white-space:pre-wrap;overflow-wrap:anywhere;color:#244a7b}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.metric{background:#f3f6fb;border-radius:11px;padding:13px}
+.metric span{display:block;color:var(--muted);font-size:.8rem}
+.metric strong{font-size:1.35rem;display:block;margin-top:3px}
+.bar-list{display:grid;gap:9px;margin-top:12px}
+.bar-row{display:grid;grid-template-columns:60px 1fr 35px;gap:10px;align-items:center;font-size:.85rem}
+.track{height:12px;border-radius:999px;background:#edf1f7;overflow:hidden}
+.fill{height:100%;background:linear-gradient(90deg,#3979e5,#5ac6d6);border-radius:999px}
+.note{padding:13px 15px;border-radius:10px;background:var(--orange-bg);color:#774309;font-size:.9rem}
+.good-note{padding:13px 15px;border-radius:10px;background:#edf7f2;color:#17684f;font-size:.9rem}
+ul{padding-left:20px;margin:8px 0}li{margin:5px 0}
+footer{text-align:center;color:var(--muted);font-size:.82rem;padding:22px}
+.smallcaps{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:var(--muted)}
+.hidden{display:none!important}
+
+.plot-wrap{width:100%;max-width:760px;margin:10px auto 0;border:1px solid var(--line);border-radius:12px;background:#fbfdff;overflow:hidden}
+#curvePlot{display:block;width:100%;height:auto;aspect-ratio:1.45}
+.plot-legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:12px;font-size:.86rem;color:var(--muted)}
+.plot-legend span{display:inline-flex;align-items:center;gap:7px}
+.legend-dot{width:11px;height:11px;display:inline-block;border-radius:50%}
+.curve-dot{background:#b7c4d6;border:1px solid #8495ad}
+.subgroup-dot{background:#2e67d1}
+.current-dot{background:#e87924;border:2px solid #9a4510}
+
+@media(max-width:780px){.span-7,.span-5,.span-6{grid-column:span 12}.steps-layout{grid-template-columns:1fr}.card{padding:17px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="eyebrow">HMWK 1 · Interactive cryptography lab</div>
+    <h1>From Private Key to Public Key</h1>
+    <p>Explore elliptic-curve scalar multiplication, point addition, and the limits of statistical experiments using a small educational curve.</p>
+  </div>
+</header>
+<main>
+<div class="grid">
+  <section class="card span-12">
+    <h2>01 · The toy curve</h2>
+    <div class="formula">E: y² ≡ x³ + 7 (mod 17)<br>Base point G = (1, 5)<br>Public point Q = kG</div>
+    <div class="badges"><span class="badge">Prime field: p = 17</span><span class="badge">Private scalar: k</span><span class="badge">Point at infinity: O</span></div>
+    <p class="muted">All arithmetic is performed modulo 17. This tiny curve is for learning only and is not secure for real wallets or funds.</p>
+  </section>
+
+  <section class="card span-7">
+    <h2>02 · Generate a toy public key</h2>
+    <div class="controls">
+      <div><label for="privateKey">Private scalar k</label><input id="privateKey" type="number" min="1" max="1000" step="1" value="6"></div>
+      <button id="calculate">Calculate Q = kG</button>
+      <button id="animate" class="secondary">▶ Show steps slowly</button>
+      <button id="reset" class="ghost">Reset</button>
+    </div>
+    <p class="muted">Enter an integer from 1 to 1,000. The repeated-addition table is shown up to k; double-and-add is used as an independent check.</p>
+    <div id="error" class="error" role="alert"></div>
+    <div class="result" aria-live="polite">
+      <div class="smallcaps">Toy public key</div>
+      <div id="publicKey" class="big">Q = 6G = (5, 8)</div>
+      <div id="verification" class="status">✓ Repeated addition agrees with double-and-add.</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>Operation</th><th>Point</th></tr></thead>
+        <tbody id="steps"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card span-5">
+    <h2>03 · What happens in point addition?</h2>
+    <div class="trace">
+      <div class="smallcaps">Latest operation</div>
+      <p id="traceTitle"><strong>Start at the identity point O</strong></p>
+      <code id="traceText">O + G = G</code>
+    </div>
+    <h3>Rules used by the program</h3>
+    <ul>
+      <li><strong>Identity:</strong> O + P = P.</li>
+      <li><strong>Inverse:</strong> P + (−P) = O.</li>
+      <li><strong>Different points:</strong> λ = (y₂ − y₁)/(x₂ − x₁) mod p.</li>
+      <li><strong>Doubling:</strong> λ = (3x₁² + a)/(2y₁) mod p.</li>
+    </ul>
+    <p class="muted">Division means multiplying by a modular inverse, not ordinary decimal division.</p>
+  </section>
+
+  <section class="card span-12">
+    <h2>04 · Slow visual walkthrough</h2>
+    <p class="muted">Press “Show steps slowly” to watch each repeated addition. The current row is highlighted. You can stop the animation by pressing Calculate or Reset.</p>
+    <div class="controls">
+      <div><label for="speed">Animation speed</label>
+        <select id="speed"><option value="700">Slow · 700 ms</option><option value="350" selected>Normal · 350 ms</option><option value="120">Fast · 120 ms</option></select>
+      </div>
+      <span id="animationStatus" class="muted" aria-live="polite">Ready.</span>
+    </div>
+  </section>
+
+
+  <section class="card span-12">
+    <h2>05 · Coordinate plot of the toy curve</h2>
+    <p class="muted">Each dot is a valid finite point satisfying y² ≡ x³ + 7 (mod 17). Blue dots are multiples of the base point G; the orange dot marks the current public point Q = kG. The vertical axis is drawn in the usual mathematical direction (larger y values are higher).</p>
+    <div class="plot-wrap">
+      <canvas id="curvePlot" role="img" aria-label="Coordinate plot of valid points on the toy elliptic curve, with multiples of G and the current public point highlighted."></canvas>
+    </div>
+    <div class="plot-legend">
+      <span><i class="legend-dot curve-dot"></i> All valid curve points</span>
+      <span><i class="legend-dot subgroup-dot"></i> Multiples of G</span>
+      <span><i class="legend-dot current-dot"></i> Current public point Q</span>
+    </div>
+    <p id="plotSummary" class="muted" aria-live="polite">Coordinate plot will update when you calculate a public key.</p>
+  </section>
+
+  <section class="card span-12">
+    <h2>06 · Statistical exploration</h2>
+    <p>Sample k = 1…N and inspect the resulting points. Since the group generated by G is tiny, repeated outputs are expected and are an important finding—not a bug.</p>
+    <div class="controls">
+      <div><label for="sampleSize">Number of private scalars</label><select id="sampleSize"><option>7</option><option>14</option><option>35</option><option selected>100</option><option>500</option></select></div>
+      <button id="runStats">Run experiment</button>
+      <button id="downloadCsv" class="secondary">Export CSV</button>
+    </div>
+    <div id="metrics" class="metric-grid"></div>
+    <div class="grid">
+      <div class="card span-6" style="box-shadow:none;background:#fbfdff">
+        <h3>Frequency of x-coordinates</h3><p class="muted">Count of finite public points for each x.</p><div id="xChart" class="bar-list"></div>
+      </div>
+      <div class="card span-6" style="box-shadow:none;background:#fbfdff">
+        <h3>Frequency of y-coordinates</h3><p class="muted">Count of finite public points for each y.</p><div id="yChart" class="bar-list"></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>k</th><th>Public point kG</th><th>Finite point?</th></tr></thead><tbody id="statsTable"></tbody></table>
+    </div>
+    <div class="note" style="margin-top:14px"><strong>Interpretation:</strong> coordinate frequencies and correlations describe this small deterministic group. They do not prove cryptographic security. The hash-function avalanche effect is a separate design goal and is not required of elliptic-curve scalar multiplication.</div>
+  </section>
+
+  <section class="card span-6">
+    <h2>07 · What this demonstrates</h2>
+    <ul>
+      <li><strong>Deterministic:</strong> the same k and G always produce the same Q.</li>
+      <li><strong>Efficient forward direction:</strong> compute Q = kG using point addition or double-and-add.</li>
+      <li><strong>ECDLP:</strong> on a properly chosen large curve, recovering k from G and Q is believed computationally infeasible.</li>
+      <li><strong>Not a hash function:</strong> scalar multiplication has a group structure and is used for public-key cryptography and signatures.</li>
+    </ul>
+  </section>
+  <section class="card span-6">
+    <h2>08 · Limitations and Ethereum</h2>
+    <ul>
+      <li>This toy curve has only a small number of points; outputs repeat periodically.</li>
+      <li>Statistical appearance alone cannot establish one-wayness or security.</li>
+      <li>Ethereum uses secp256k1 with much larger parameters, not p = 17.</li>
+      <li>This demo does not generate real Ethereum keys or sign transactions.</li>
+    </ul>
+  </section>
+</div>
+</main>
+<script>
+"use strict";
+const p = 17, a = 0, G = Object.freeze({x:1,y:5});
+let animationToken = 0;
+let latestStats = [];
+
+function mod(n,m=p){ return ((n % m) + m) % m; }
+function inverse(n){
+  n = mod(n);
+  if(n===0) throw new Error("Zero has no multiplicative inverse modulo p.");
+  // Extended Euclidean algorithm
+  let t=0, newT=1, r=p, newR=n;
+  while(newR!==0){
+    const q=Math.floor(r/newR);
+    [t,newT]=[newT,t-q*newT];
+    [r,newR]=[newR,r-q*newR];
+  }
+  if(r!==1) throw new Error("Value has no inverse modulo p.");
+  return mod(t);
+}
+function isOnCurve(P){
+  return P===null || mod(P.y*P.y)===mod(P.x*P.x*P.x+7);
+}
+function pointNeg(P){ return P===null ? null : {x:P.x,y:mod(-P.y)}; }
+function pointAdd(P,Q){
+  if(P===null) return Q;
+  if(Q===null) return P;
+  if(!isOnCurve(P)||!isOnCurve(Q)) throw new Error("Point is not on the curve.");
+  if(P.x===Q.x && mod(P.y+Q.y)===0) return null;
+  let lambda;
+  if(P.x===Q.x && P.y===Q.y){
+    if(P.y===0) return null;
+    lambda=mod((3*P.x*P.x+a)*inverse(2*P.y));
+  }else{
+    lambda=mod((Q.y-P.y)*inverse(Q.x-P.x));
+  }
+  const x3=mod(lambda*lambda-P.x-Q.x);
+  const y3=mod(lambda*(P.x-x3)-P.y);
+  const R={x:x3,y:y3};
+  if(!isOnCurve(R)) throw new Error("Point addition produced an invalid point.");
+  return R;
+}
+function scalarMultiply(k,P=G){
+  let R=null;
+  for(let i=0;i<k;i++) R=pointAdd(R,P);
+  return R;
+}
+function scalarMultiplyFast(k,P=G){
+  let R=null, addend=P, n=k;
+  while(n>0){
+    if(n%2===1) R=pointAdd(R,addend);
+    addend=pointAdd(addend,addend);
+    n=Math.floor(n/2);
+  }
+  return R;
+}
+function pointText(P){return P===null ? "O (point at infinity)" : `(${P.x}, ${P.y})`;}
+function samePoint(P,Q){return P===null ? Q===null : Q!==null&&P.x===Q.x&&P.y===Q.y;}
+function setTrace(title,detail){
+  document.getElementById("traceTitle").textContent=title;
+  document.getElementById("traceText").textContent=detail;
+}
+function validateK(){
+  const raw=document.getElementById("privateKey").value;
+  const k=Number(raw);
+  if(raw.trim()===""||!Number.isSafeInteger(k)||k<1||k>1000){
+    throw new Error("Please enter a whole number from 1 to 1,000.");
+  }
+  return k;
+}
+function renderSteps(k,highlight=k){
+  const tbody=document.getElementById("steps");
+  tbody.replaceChildren();
+  let current=null;
+  for(let i=1;i<=k;i++){
+    const previous=current;
+    current=pointAdd(current,G);
+    const tr=document.createElement("tr");
+    if(i===highlight) tr.className="current";
+    const vals=[i, previous===null ? "O + G" : `${i-1}G + G`, pointText(current)];
+    vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});
+    tbody.appendChild(tr);
+  }
+}
+
+function curvePoints(){
+  const points=[];
+  for(let x=0;x<p;x++){
+    for(let y=0;y<p;y++){
+      if(mod(y*y)===mod(x*x*x+7)) points.push({x,y});
+    }
+  }
+  return points;
+}
+function subgroupPoints(){
+  const points=[];
+  let current=null;
+  // Collect the non-infinity multiples in one full cycle.
+  for(let i=1;i<=100;i++){
+    current=pointAdd(current,G);
+    if(current===null) break;
+    if(!points.some(P=>samePoint(P,current))) points.push(current);
+  }
+  return points;
+}
+function drawCoordinatePlot(k=6, animatedPoint=undefined){
+  const canvas=document.getElementById("curvePlot");
+  if(!canvas) return;
+  const width=Math.max(320,canvas.clientWidth||640);
+  const height=Math.round(width/1.45);
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.round(width*dpr);
+  canvas.height=Math.round(height*dpr);
+  canvas.style.height=height+"px";
+  const ctx=canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+  ctx.fillStyle="#fbfdff";ctx.fillRect(0,0,width,height);
+
+  const pad={left:42,right:20,top:22,bottom:38};
+  const plotW=width-pad.left-pad.right;
+  const plotH=height-pad.top-pad.bottom;
+  const cellX=plotW/16, cellY=plotH/16;
+  const px=x=>pad.left+x*cellX;
+  const py=y=>pad.top+(16-y)*cellY;
+
+  // Grid and axis labels
+  ctx.font="11px system-ui, sans-serif";
+  ctx.textAlign="center";ctx.textBaseline="top";
+  for(let i=0;i<=16;i++){
+    ctx.strokeStyle=(i%4===0)?"#d5dfec":"#edf1f7";
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(px(i),pad.top);ctx.lineTo(px(i),pad.top+plotH);ctx.stroke();
+    ctx.fillStyle="#65758c";ctx.fillText(String(i),px(i),pad.top+plotH+8);
+  }
+  ctx.textAlign="right";ctx.textBaseline="middle";
+  for(let i=0;i<=16;i++){
+    ctx.strokeStyle=(i%4===0)?"#d5dfec":"#edf1f7";
+    ctx.beginPath();ctx.moveTo(pad.left,py(i));ctx.lineTo(pad.left+plotW,py(i));ctx.stroke();
+    ctx.fillStyle="#65758c";ctx.fillText(String(i),pad.left-8,py(i));
+  }
+  ctx.fillStyle="#334d6d";ctx.font="600 12px system-ui, sans-serif";
+  ctx.textAlign="center";ctx.textBaseline="bottom";
+  ctx.fillText("x coordinate",pad.left+plotW/2,height-2);
+  ctx.save();ctx.translate(13,pad.top+plotH/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText("y coordinate",0,0);ctx.restore();
+
+  const valid=curvePoints(), subgroup=subgroupPoints();
+  const radius=Math.max(3.2,Math.min(6,width/100));
+  valid.forEach(P=>{
+    ctx.beginPath();ctx.arc(px(P.x),py(P.y),radius*.78,0,Math.PI*2);
+    ctx.fillStyle="#b7c4d6";ctx.fill();
+    ctx.strokeStyle="#8798af";ctx.lineWidth=.7;ctx.stroke();
+  });
+  subgroup.forEach(P=>{
+    ctx.beginPath();ctx.arc(px(P.x),py(P.y),radius,0,Math.PI*2);
+    ctx.fillStyle="#2e67d1";ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=1.2;ctx.stroke();
+  });
+  const Q=animatedPoint===undefined?scalarMultiplyFast(k,G):animatedPoint;
+  if(Q!==null){
+    ctx.beginPath();ctx.arc(px(Q.x),py(Q.y),radius+3,0,Math.PI*2);
+    ctx.fillStyle="#e87924";ctx.fill();
+    ctx.strokeStyle="#9a4510";ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle="#813d0a";ctx.font="700 12px system-ui, sans-serif";
+    ctx.textAlign=Q.x>11?"right":"left";ctx.textBaseline=Q.y>12?"top":"bottom";
+    ctx.fillText(`Q (${Q.x}, ${Q.y})`,px(Q.x)+(Q.x>11?-9:9),py(Q.y)+(Q.y>12?8:-8));
+  }
+  const summary=document.getElementById("plotSummary");
+  if(summary){
+    summary.textContent=`Found ${valid.length} finite points on the curve; ${subgroup.length} distinct non-infinity multiples are generated by G. Current Q = ${pointText(Q)}.`;
+  }
+}
+
+function calculate(){
+  animationToken++;
+  document.getElementById("animationStatus").textContent="Ready.";
+  const error=document.getElementById("error");
+  error.textContent="";
+  try{
+    const k=validateK(), Q=scalarMultiply(k), fast=scalarMultiplyFast(k);
+    renderSteps(k);
+    document.getElementById("publicKey").textContent=`Q = ${k}G = ${pointText(Q)}`;
+    const verified=samePoint(Q,fast);
+    document.getElementById("verification").textContent=verified
+      ?"✓ Repeated addition agrees with double-and-add."
+      :"✗ Verification failed; check the implementation.";
+    document.getElementById("verification").style.color=verified?"#17684f":"#b42318";
+    setTrace(`Computed ${k}G`,`${k}G = ${pointText(Q)}
+Independent double-and-add check: ${verified?"PASS":"FAIL"}`);
+    drawCoordinatePlot(k,Q);
+  }catch(e){error.textContent=e.message;}
+}
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function animate(){
+  let k;
+  try{k=validateK();}catch(e){document.getElementById("error").textContent=e.message;return;}
+  const token=++animationToken, tbody=document.getElementById("steps");
+  document.getElementById("error").textContent="";
+  tbody.replaceChildren();
+  let current=null;
+  document.getElementById("animationStatus").textContent="Animation running…";
+  document.getElementById("publicKey").textContent="Building Q = kG…";
+  for(let i=1;i<=k;i++){
+    if(token!==animationToken)return;
+    const prev=current;
+    current=pointAdd(current,G);
+    const tr=document.createElement("tr");tr.className="current";
+    [i,prev===null?"O + G":`${i-1}G + G`,pointText(current)].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});
+    [...tbody.querySelectorAll("tr")].forEach(row=>row.classList.remove("current"));
+    tbody.appendChild(tr);
+    tr.scrollIntoView({block:"nearest",behavior:"auto"});
+    document.getElementById("publicKey").textContent=`Step ${i}/${k}: ${pointText(current)}`;
+    setTrace(`Step ${i}: add G`,`${i}G = ${pointText(current)}`);
+    drawCoordinatePlot(k,current);
+    await wait(Number(document.getElementById("speed").value));
+  }
+  if(token!==animationToken)return;
+  document.getElementById("publicKey").textContent=`Q = ${k}G = ${pointText(current)}`;
+  document.getElementById("verification").textContent=samePoint(current,scalarMultiplyFast(k))?"✓ Repeated addition agrees with double-and-add.":"✗ Verification failed.";
+  document.getElementById("animationStatus").textContent="Animation complete.";
+}
+function countBy(arr,keyFn){
+  const counts=new Map();
+  arr.forEach(v=>{const key=keyFn(v);counts.set(key,(counts.get(key)||0)+1);});
+  return [...counts.entries()].sort((a,b)=>Number(a[0])-Number(b[0]));
+}
+function drawBars(id,entries,total){
+  const host=document.getElementById(id);host.replaceChildren();
+  const max=Math.max(1,...entries.map(e=>e[1]));
+  entries.forEach(([label,count])=>{
+    const row=document.createElement("div");row.className="bar-row";
+    const name=document.createElement("span");name.textContent=label;
+    const track=document.createElement("div");track.className="track";
+    const fill=document.createElement("div");fill.className="fill";fill.style.width=`${100*count/max}%`;track.appendChild(fill);
+    const val=document.createElement("span");val.textContent=String(count);
+    row.append(name,track,val);host.appendChild(row);
+  });
+  if(!entries.length)host.textContent="No finite points in this sample.";
+}
+function runStats(){
+  const N=Number(document.getElementById("sampleSize").value);
+  latestStats=[];
+  for(let k=1;k<=N;k++){
+    const Q=scalarMultiplyFast(k,G);
+    latestStats.push({k,point:Q,pointText:pointText(Q)});
+  }
+  const finite=latestStats.filter(r=>r.point!==null);
+  const distinct=new Set(finite.map(r=>`${r.point.x},${r.point.y}`)).size;
+  const infinity=latestStats.length-finite.length;
+  const metrics=document.getElementById("metrics");metrics.replaceChildren();
+  [[ "Scalars tested",N ],["Distinct finite points",distinct],["Point at infinity",infinity],["Finite outputs",finite.length]].forEach(([label,value])=>{
+    const box=document.createElement("div");box.className="metric";
+    const s=document.createElement("span");s.textContent=label;
+    const b=document.createElement("strong");b.textContent=String(value);
+    box.append(s,b);metrics.appendChild(box);
+  });
+  drawBars("xChart",countBy(finite,r=>r.point.x),finite.length);
+  drawBars("yChart",countBy(finite,r=>r.point.y),finite.length);
+  const tbody=document.getElementById("statsTable");tbody.replaceChildren();
+  latestStats.forEach(r=>{
+    const tr=document.createElement("tr");
+    [r.k,r.pointText,r.point===null?"No":"Yes"].forEach(v=>{const td=document.createElement("td");td.textContent=String(v);tr.appendChild(td);});
+    tbody.appendChild(tr);
+  });
+}
+function exportCsv(){
+  if(!latestStats.length)runStats();
+  const rows=[["k","public_point","finite_point"],...latestStats.map(r=>[r.k,r.pointText,r.point===null?"no":"yes"])];
+  const csv=rows.map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="ecc_toy_curve_statistics.csv";a.click();
+  URL.revokeObjectURL(url);
+}
+document.getElementById("calculate").addEventListener("click",calculate);
+document.getElementById("animate").addEventListener("click",animate);
+document.getElementById("reset").addEventListener("click",()=>{
+  animationToken++;
+  document.getElementById("privateKey").value="6";
+  document.getElementById("error").textContent="";
+  document.getElementById("animationStatus").textContent="Reset complete.";
+  calculate();
+});
+document.getElementById("runStats").addEventListener("click",runStats);
+document.getElementById("downloadCsv").addEventListener("click",exportCsv);
+document.getElementById("privateKey").addEventListener("keydown",e=>{if(e.key==="Enter")calculate();});
+if(!isOnCurve(G))throw new Error("Base point G is invalid.");
+window.addEventListener("resize",()=>{
+  try{drawCoordinatePlot(validateK());}catch(e){drawCoordinatePlot(6);}
+});
+calculate();
+runStats();
+</script>
+</body>
+</html>
